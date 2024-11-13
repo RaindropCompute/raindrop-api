@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $PREFIX-api
+  namespace: $NAMESPACE
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: $PREFIX-api
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-env: raindrop/data/$ENV/raindrop-api
+        vault.hashicorp.com/agent-inject-template-env: |
+          {{- with secret "raindrop/data/$ENV/raindrop-api" -}}
+          {{- range $k, $v := .Data.data }}
+          export {{ $k }}={{ $v }}
+          {{- end -}}
+          {{- end -}}
+        vault.hashicorp.com/role: $NAMESPACE
+        vault.hashicorp.com/tls-skip-verify: "true"
+      labels:
+        app: $PREFIX-api
+    spec:
+      serviceAccountName: $NAMESPACE
+      containers:
+        - name: api
+          image: cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$TAG
+          command:
+            - sh
+            - -c
+            - |
+              . /vault/secrets/env
+              yarn start
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $PREFIX-api
+  namespace: $NAMESPACE
+spec:
+  ipFamilyPolicy: PreferDualStack
+  selector:
+    app: $PREFIX-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5005
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: $PREFIX-api
+  namespace: $NAMESPACE
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10g"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - $DOMAIN
+      secretName: api-$PREFIX-bobbygeorge-dev
+  rules:
+    - host: $DOMAIN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: $PREFIX-api
+                port:
+                  number: 80
