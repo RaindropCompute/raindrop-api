@@ -3,6 +3,7 @@ import cors from "cors";
 import mime from "mime";
 import { minioClient } from "./lib/minio.js";
 import amqp from "amqplib";
+import { Readable } from "node:stream";
 
 const connection = await amqp.connect(process.env.AMQP_URL!);
 
@@ -11,8 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post("/upload", async (req: Request, res: Response) => {
-  const videoId = crypto.randomUUID();
+app.post("/upload/:id", async (req: Request, res: Response) => {
+  const videoId = req.params.id;
 
   if (!req.headers["content-type"]) {
     res.status(400).send("content-type is required");
@@ -40,7 +41,45 @@ app.post("/upload", async (req: Request, res: Response) => {
   await channel.waitForConfirms();
   console.log(`Sent ${originalKey} to transcoding queue`);
 
-  res.json({ videoId });
+  res.end();
+});
+
+app.post("/video", async (req: Request, res: Response) => {
+  console.log(req.body);
+  const videoId = crypto.randomUUID();
+
+  if (req.body.url) {
+    const resp = await fetch(req.body.url);
+
+    const originalKey = `${videoId}/original.${mime.getExtension(
+      resp.headers.get("content-type")!
+    )}`;
+    await minioClient.putObject(
+      process.env.MINIO_BUCKET!,
+      originalKey,
+      Readable.fromWeb(resp.body as any)
+    );
+
+    const channel = await connection.createConfirmChannel();
+    await channel.assertQueue(process.env.AMQP_QUEUE!, { durable: true });
+    await channel.prefetch(1);
+    channel.sendToQueue(
+      process.env.AMQP_QUEUE!,
+      Buffer.from(
+        JSON.stringify({
+          videoId,
+          originalKey,
+        })
+      ),
+      { persistent: true }
+    );
+    await channel.waitForConfirms();
+    console.log(`Sent ${originalKey} to transcoding queue`);
+
+    res.json({ videoId });
+  } else {
+    res.json({ videoId, uploadUrl: `/upload/${videoId}` });
+  }
 });
 
 app.get("/video/:id/:filename", async (req: Request, res: Response) => {
