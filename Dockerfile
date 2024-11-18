@@ -1,5 +1,8 @@
 FROM node:20.16
 
+RUN apt update
+RUN apt install -y ffmpeg
+
 WORKDIR /opt/api
 
 COPY .yarn .yarn

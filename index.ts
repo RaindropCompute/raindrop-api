@@ -4,11 +4,16 @@ import mime from "mime";
 import { minioClient } from "./lib/minio.js";
 import amqp from "amqplib";
 import { Readable } from "node:stream";
+import { checkJwt } from "./lib/auth.js";
+import helmet from "helmet";
+import morgan from "morgan";
 
 const connection = await amqp.connect(process.env.AMQP_URL!);
 
 const app = express();
 
+app.use(helmet());
+app.use(morgan("dev"));
 app.use(cors());
 app.use(express.json());
 
@@ -44,7 +49,7 @@ app.post("/upload/:id", async (req: Request, res: Response) => {
   res.end();
 });
 
-app.post("/video", async (req: Request, res: Response) => {
+app.post("/video", checkJwt, async (req: Request, res: Response) => {
   console.log(req.body);
   const videoId = crypto.randomUUID();
 

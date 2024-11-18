@@ -57,7 +57,7 @@ pipeline {
       }
       steps {
         container('kubectl') {
-          sh 'ENV=dev TAG=$GIT_COMMIT NAMESPACE=raindrop-preview PREFIX=raindrop-$(echo "$GIT_BRANCH" | tr \'[:upper:]\' \'[:lower:]\' | sed \'s/[^a-z0-9.-]//g\') DOMAIN=$(echo "$GIT_BRANCH" | tr \'[:upper:]\' \'[:lower:]\' | sed \'s/[^a-z0-9.-]//g\').api-v1.raindrop.bobbygeorge.dev envsubst \'$TAG:$NAMESPACE:$ENV:$PREFIX:$DOMAIN\' < kubernetes.yaml | kubectl apply -f -'
+          sh 'ENV=dev TAG=$GIT_COMMIT NAMESPACE=raindrop-preview PREFIX=raindrop-$(echo "$GIT_BRANCH" | tr \'[:upper:]\' \'[:lower:]\' | sed \'s/[^a-z0-9.-]//g\') DOMAIN=api-v1.$(echo "$GIT_BRANCH" | tr \'[:upper:]\' \'[:lower:]\' | sed \'s/[^a-z0-9.-]//g\').raindrop.bobbygeorge.dev envsubst \'$TAG:$NAMESPACE:$ENV:$PREFIX:$DOMAIN\' < kubernetes.yaml | kubectl apply -f -'
         }
       }
     }

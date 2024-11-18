@@ -35,6 +35,45 @@ spec:
               . /vault/secrets/env
               yarn start
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $PREFIX-transcoder
+  namespace: $NAMESPACE
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: $PREFIX-transcoder
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-env: raindrop/data/$ENV/raindrop-api
+        vault.hashicorp.com/agent-inject-template-env: |
+          {{- with secret "raindrop/data/$ENV/raindrop-api" -}}
+          {{- range $k, $v := .Data.data }}
+          export {{ $k }}={{ $v }}
+          {{- end -}}
+          {{- end -}}
+        vault.hashicorp.com/role: $NAMESPACE
+        vault.hashicorp.com/tls-skip-verify: "true"
+      labels:
+        app: $PREFIX-transcoder
+    spec:
+      serviceAccountName: $NAMESPACE
+      nodeSelector:
+        kubernetes.io/hostname: cme-kube02.int.bobbygeorge.dev
+      containers:
+        - name: transcoder
+          image: cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$TAG
+          command:
+            - sh
+            - -c
+            - |
+              . /vault/secrets/env
+              yarn start-transcoder
+---
 apiVersion: v1
 kind: Service
 metadata:
