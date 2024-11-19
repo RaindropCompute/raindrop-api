@@ -1,0 +1,37 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Status {
+  UPLOADED
+  IN_PROGRESS
+  FINISHED
+  ERROR
+}
+
+model Video {
+    id  Int @id @default(autoincrement())
+    uploadTime DateTime @default(now())
+    status Status @default(UPLOADED)
+    error String
+    uploadedBy Int
+    metadata MetaData?
+}
+
+model MetaData {
+    name String
+    duration Int
+    bitrate Int
+    width Int
+    height Int
+    framerate Int
+    audioSampleRate Int
+
+    videoId Int @unique
+    video Video @relation(fields: [videoId], references: [id])
+}

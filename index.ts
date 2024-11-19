@@ -7,6 +7,7 @@ import { Readable } from "node:stream";
 import { checkJwt } from "./lib/auth.js";
 import helmet from "helmet";
 import morgan from "morgan";
+import { BucketItem } from "minio";
 
 const connection = await amqp.connect(process.env.AMQP_URL!);
 
@@ -50,7 +51,6 @@ app.post("/upload/:id", async (req: Request, res: Response) => {
 });
 
 app.post("/video", checkJwt, async (req: Request, res: Response) => {
-  console.log(req.body);
   const videoId = crypto.randomUUID();
 
   if (req.body.url) {
@@ -81,10 +81,33 @@ app.post("/video", checkJwt, async (req: Request, res: Response) => {
     await channel.waitForConfirms();
     console.log(`Sent ${originalKey} to transcoding queue`);
 
-    res.json({ videoId });
+    res.json({ id: videoId });
   } else {
-    res.json({ videoId, uploadUrl: `/upload/${videoId}` });
+    res.json({ id: videoId, uploadUrl: `/upload/${videoId}` });
   }
+});
+
+app.get("/video", checkJwt, async (req: Request, res: Response) => {
+  const keys = await minioClient.listObjectsV2(process.env.MINIO_BUCKET!, "");
+  const videos: BucketItem[] = await keys.toArray();
+
+  res.json(
+    videos.map((key) => ({
+      id: key.prefix,
+      title: key.prefix,
+      length: "00:00:00",
+      createdAt: "2021-01-01",
+    }))
+  );
+});
+
+app.get("/video/:id", checkJwt, async (req: Request, res: Response) => {
+  res.json({
+    id: req.params.id,
+    title: req.params.id,
+    length: "00:00:00",
+    createdAt: "2021-01-01",
+  });
 });
 
 app.get("/video/:id/:filename", async (req: Request, res: Response) => {
@@ -93,7 +116,7 @@ app.get("/video/:id/:filename", async (req: Request, res: Response) => {
 
   try {
     const objectInfo = await minioClient.statObject(
-      "videos",
+      process.env.MINIO_BUCKET!,
       `${id}/${filename}`
     );
     const totalLength = objectInfo.size;
@@ -110,12 +133,12 @@ app.get("/video/:id/:filename", async (req: Request, res: Response) => {
         "Content-Range": `bytes ${start}-${end}/${totalLength}`,
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
-        "Content-Type": "video/webm",
+        "Content-Type": objectInfo.metaData["content-type"],
       });
 
       // Stream the specified byte range from MinIO
       const stream = await minioClient.getPartialObject(
-        "videos",
+        process.env.MINIO_BUCKET!,
         `${id}/${filename}`,
         start,
         chunkSize
@@ -124,11 +147,14 @@ app.get("/video/:id/:filename", async (req: Request, res: Response) => {
     } else {
       res.writeHead(200, {
         "Content-Length": totalLength,
-        "Content-Type": "video/webm",
+        "Content-Type": objectInfo.metaData["content-type"],
       });
 
       // Stream the specified byte range from MinIO
-      const stream = await minioClient.getObject("videos", `${id}/${filename}`);
+      const stream = await minioClient.getObject(
+        process.env.MINIO_BUCKET!,
+        `${id}/${filename}`
+      );
       stream.pipe(res);
     }
   } catch (error) {
