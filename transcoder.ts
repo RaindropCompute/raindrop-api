@@ -1,10 +1,11 @@
 import amqp from "amqplib";
-import { ffmpegToMinio, hasAudio } from "./lib/utils.js";
+import { ffmpegToMinio, ffprobe } from "./lib/utils.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import ffmpeg from "fluent-ffmpeg";
 import { minioClient } from "./lib/minio.js";
+import * as db from "./lib/database.js";
 
 const connection = await amqp.connect(process.env.AMQP_URL!);
 const channel = await connection.createChannel();
@@ -18,12 +19,13 @@ channel.consume(
   async (msg) => {
     let tmpdir: string | null = null;
     if (!msg) return;
+    console.log("Received message");
+
+    const { videoId, originalKey } = JSON.parse(msg.content.toString());
+
+    db.setVideoStatus(videoId, db.status.IN_PROGRESS);
 
     try {
-      console.log("Received message");
-
-      const { videoId, originalKey } = JSON.parse(msg.content.toString());
-
       tmpdir = await mkdtemp(os.tmpdir() + path.sep);
       const originalPath = path.join(tmpdir, originalKey.split("/").pop()!);
       await minioClient.fGetObject(
@@ -32,7 +34,16 @@ channel.consume(
         originalPath
       );
 
-      const audio = await hasAudio(originalPath);
+      const metadata = await ffprobe(originalPath);
+
+      const audioStreams = metadata.streams.filter(
+        (stream) => stream.codec_type === "audio"
+      );
+      const videoStreams = metadata.streams.filter(
+        (stream) => stream.codec_type === "video"
+      );
+      const audio = audioStreams.length > 0;
+      const length = videoStreams[0].duration as any as number;
 
       await Promise.all([
         audio &&
@@ -176,8 +187,12 @@ channel.consume(
           `${videoId}/manifest.mpd`
         );
       }
+
+      db.addVideoMetadata(videoId, length, 1800000, 1920, 1080, 30, 48000);
+      db.setVideoStatus(videoId, db.status.FINISHED);
     } catch (e) {
       console.error(e);
+      db.setError(videoId, "Error while transcoding");
     } finally {
       channel.ack(msg);
       if (tmpdir) await rm(tmpdir, { recursive: true });

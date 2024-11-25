@@ -3,7 +3,7 @@ import path from "node:path";
 import { minioClient } from "./minio.js";
 import { promisify } from "node:util";
 
-const ffprobe = promisify<string, FfprobeData>(ffmpeg.ffprobe);
+export const ffprobe = promisify<string, FfprobeData>(ffmpeg.ffprobe);
 
 export async function ffmpegToMinio(
   command: FfmpegCommand,
@@ -27,14 +27,4 @@ export async function ffmpegToMinio(
   });
 
   await minioClient.fPutObject(process.env.MINIO_BUCKET!, key, outputFilePath);
-}
-
-export async function hasAudio(input: string) {
-  const metadata = await ffprobe(input);
-
-  const audioStreams = metadata.streams.filter(
-    (stream) => stream.codec_type === "audio"
-  );
-
-  return audioStreams.length > 0;
 }

@@ -1,3 +1,0 @@
-{
-  "exec": "node --env-file=.env.local -r ts-node/register"
-}

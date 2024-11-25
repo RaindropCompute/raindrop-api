@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "MetaData" ALTER COLUMN "duration" SET DATA TYPE TEXT,
+ALTER COLUMN "bitrate" SET DATA TYPE TEXT;

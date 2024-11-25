@@ -8,6 +8,7 @@ generator client {
 }
 
 enum Status {
+  PENDING
   UPLOADED
   IN_PROGRESS
   FINISHED
@@ -15,23 +16,24 @@ enum Status {
 }
 
 model Video {
-    id  Int @id @default(autoincrement())
+    id  String @id @default(uuid())
     uploadTime DateTime @default(now())
-    status Status @default(UPLOADED)
-    error String
-    uploadedBy Int
+    status Status @default(PENDING)
+    error String?
+    uploadedBy String
+    title String
     metadata MetaData?
+    orgId String
 }
 
 model MetaData {
-    name String
-    duration Int
-    bitrate Int
+    duration Float
+    bitrate Float
     width Int
     height Int
-    framerate Int
-    audioSampleRate Int
+    framerate Float
+    audioSampleRate Float
 
-    videoId Int @unique
+    videoId String @id @unique
     video Video @relation(fields: [videoId], references: [id])
 }
