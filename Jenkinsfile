@@ -36,6 +36,7 @@ pipeline {
 
   environment {
     HARBOR = credentials('harbor')
+    DATABASE_URL = credentials('DATABASE_URL')
   }
 
   stages {
