@@ -11,6 +11,7 @@ pipeline {
           containers:
           - name: node
             image: node:20.16
+            tty: true
           - name: docker
             image: docker:27.2-dind
             volumeMounts:
