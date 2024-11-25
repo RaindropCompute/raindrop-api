@@ -14,6 +14,7 @@ RUN yarn --immutable
 
 COPY . .
 
+RUN yarn prisma generate
 RUN yarn build
 
 ENTRYPOINT ["yarn", "start"]
