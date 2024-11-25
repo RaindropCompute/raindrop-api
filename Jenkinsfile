@@ -9,6 +9,8 @@ pipeline {
             runAsUser: 0
           serviceAccountName: jenkins-agent
           containers:
+          - name: node
+            image: node:20.16
           - name: docker
             image: docker:27.2-dind
             volumeMounts:
@@ -36,15 +38,28 @@ pipeline {
   }
 
   stages {
-    stage('Build') {
-      steps {
-        container('docker') {
-          sh 'docker login cme-harbor.int.bobbygeorge.dev -u $HARBOR_USR -p $HARBOR_PSW'
-          sh 'docker build -t raindrop-api --cache-to type=inline --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest .'
-          sh '! [ "$GIT_BRANCH" = "main" ] || docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest'
-          sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH'
-          sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_COMMIT'
-          sh 'docker push -a cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api'
+    stage("parallel") {
+      parallel {
+        stage('Migrate') {
+          steps {
+            container('node') {
+              sh 'yarn --immutable'
+              sh 'yarn prisma migrate deploy'
+            }
+          }
+        }
+
+        stage('Build') {
+          steps {
+            container('docker') {
+              sh 'docker login cme-harbor.int.bobbygeorge.dev -u $HARBOR_USR -p $HARBOR_PSW'
+              sh 'docker build -t raindrop-api --cache-to type=inline --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest .'
+              sh '! [ "$GIT_BRANCH" = "main" ] || docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest'
+              sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH'
+              sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_COMMIT'
+              sh 'docker push -a cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api'
+            }
+          }
         }
       }
     }

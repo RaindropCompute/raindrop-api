@@ -16,24 +16,24 @@ enum Status {
 }
 
 model Video {
-    id  String @id @default(uuid())
-    uploadTime DateTime @default(now())
-    status Status @default(PENDING)
-    error String?
-    uploadedBy String
-    title String
-    metadata MetaData?
-    orgId String
+  id         String    @id @default(uuid())
+  uploadTime DateTime  @default(now())
+  status     Status    @default(PENDING)
+  error      String?
+  uploadedBy String
+  title      String
+  metadata   MetaData?
+  orgId      String
 }
 
 model MetaData {
-    duration Float
-    bitrate Float
-    width Int
-    height Int
-    framerate Float
-    audioSampleRate Float
+  duration        Float
+  bitrate         Float
+  width           Int
+  height          Int
+  framerate       Float
+  audioSampleRate Float
 
-    videoId String @id @unique
-    video Video @relation(fields: [videoId], references: [id])
+  videoId String @id @unique
+  video   Video  @relation(fields: [videoId], references: [id])
 }
