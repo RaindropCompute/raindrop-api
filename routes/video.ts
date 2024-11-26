@@ -175,3 +175,15 @@ videoRouter.get(
     }
   )
 );
+
+videoRouter.delete(
+  "/:id",
+  withValidation(async (req): Promise<undefined> => {
+    const video = await db.getVideo(req.params.id);
+    if (video && video.orgId === (req.auth.orgId ?? req.auth.userId)) {
+      await db.deleteVideo(req.params.id);
+    } else {
+      throw new ApiError(404, { message: "Video does not exist" });
+    }
+  })
+);

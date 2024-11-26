@@ -1,4 +1,5 @@
 import { PrismaClient, Status, Video, MetaData } from "@prisma/client";
+import { minioClient } from "./minio.js";
 
 const prisma = new PrismaClient();
 
@@ -76,7 +77,12 @@ export async function setError(videoId: string, msg: string) {
 }
 
 export async function deleteVideo(videoId: string) {
+  await prisma.metaData.delete({ where: { videoId } });
   await prisma.video.delete({ where: { id: videoId } });
+  await minioClient.removeObject(
+    process.env.MINIO_BUCKET!,
+    `${videoId}/manifest.mpd`
+  );
 }
 
 export { Status as status } from "@prisma/client";
