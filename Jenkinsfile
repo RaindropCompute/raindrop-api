@@ -56,7 +56,7 @@ pipeline {
             container('docker') {
               sh 'docker login cme-harbor.int.bobbygeorge.dev -u $HARBOR_USR -p $HARBOR_PSW'
               sh 'docker build -t raindrop-api --cache-to type=inline --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH --cache-from type=registry,ref=cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest .'
-              sh '! [ "$GIT_BRANCH" = "main" ] || docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest'
+              sh '! [ "$GIT_BRANCH" = "v1" ] || docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:latest'
               sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_BRANCH'
               sh 'docker tag raindrop-api cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api:$GIT_COMMIT'
               sh 'docker push -a cme-harbor.int.bobbygeorge.dev/raindrop/raindrop-api'

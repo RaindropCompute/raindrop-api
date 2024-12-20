@@ -71,6 +71,10 @@ channel.consume(
               "2",
               "-row-mt",
               "1",
+              "-keyint_min",
+              "150",
+              "-g",
+              "150",
             ])
             .fps(30)
             .noAudio()
@@ -93,6 +97,10 @@ channel.consume(
               "2",
               "-row-mt",
               "1",
+              "-keyint_min",
+              "150",
+              "-g",
+              "150",
             ])
             .fps(30)
             .noAudio()
@@ -115,6 +123,10 @@ channel.consume(
               "2",
               "-row-mt",
               "1",
+              "-keyint_min",
+              "150",
+              "-g",
+              "150",
             ])
             .fps(30)
             .noAudio()
