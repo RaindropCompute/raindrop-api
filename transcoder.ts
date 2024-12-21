@@ -67,8 +67,6 @@ channel.consume(
               "1",
               "-dash",
               "1",
-              "-speed",
-              "2",
               "-row-mt",
               "1",
               "-keyint_min",
@@ -76,7 +74,6 @@ channel.consume(
               "-g",
               "150",
             ])
-            .fps(30)
             .noAudio()
             .videoBitrate("1800k")
             .videoFilter("scale=1920:1080"),
@@ -93,8 +90,6 @@ channel.consume(
               "1",
               "-dash",
               "1",
-              "-speed",
-              "2",
               "-row-mt",
               "1",
               "-keyint_min",
@@ -102,7 +97,6 @@ channel.consume(
               "-g",
               "150",
             ])
-            .fps(30)
             .noAudio()
             .videoBitrate("1024k")
             .videoFilter("scale=1280:720"),
@@ -119,8 +113,6 @@ channel.consume(
               "1",
               "-dash",
               "1",
-              "-speed",
-              "2",
               "-row-mt",
               "1",
               "-keyint_min",
@@ -128,7 +120,6 @@ channel.consume(
               "-g",
               "150",
             ])
-            .fps(30)
             .noAudio()
             .videoBitrate("276k")
             .videoFilter("scale=640:360"),
