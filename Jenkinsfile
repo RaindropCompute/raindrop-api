@@ -47,10 +47,7 @@ pipeline {
           }
           steps {
             container('node') {
-              withVault([configuration: [vaultUrl: 'https://cme-vault.int.bobbygeorge.dev:8201',
-                         vaultCredentialId: 'vault',
-                         engineVersion: 2], vaultSecrets: [[path: 'raindrop/prod/raindrop-api', engineVersion: 2, secretValues: [
-                         [vaultKey: 'DATABASE_URL']]]]]) {
+              withVault([vaultSecrets: [[path: 'raindrop/prod/raindrop-api', secretValues: [[vaultKey: 'DATABASE_URL']]]]]) {
                 sh 'yarn --immutable'
                 sh 'yarn prisma migrate deploy'
               }
