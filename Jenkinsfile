@@ -36,17 +36,24 @@ pipeline {
 
   environment {
     HARBOR = credentials('harbor')
-    DATABASE_URL = credentials('DATABASE_URL')
   }
 
   stages {
     stage("parallel") {
       parallel {
         stage('Migrate') {
+          when {
+            branch 'v1'
+          }
           steps {
             container('node') {
-              sh 'yarn --immutable'
-              sh 'yarn prisma migrate deploy'
+              withVault([configuration: [vaultUrl: 'https://cme-vault.int.bobbygeorge.dev:8201',
+                         vaultCredentialId: 'vault',
+                         engineVersion: 2], vaultSecrets: [[path: 'raindrop/prod/raindrop-api', engineVersion: 2, secretValues: [
+                         [vaultKey: 'DATABASE_URL']]]]]) {
+                sh 'yarn --immutable'
+                sh 'yarn prisma migrate deploy'
+              }
             }
           }
         }
